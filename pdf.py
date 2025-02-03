@@ -1,0 +1,112 @@
+import sys
+import os
+import argparse
+
+
+def make_dir(fname):
+    try:
+        os.mkdir(f"{fname}")
+        dup_folder = fname
+    except FileExistsError:
+        dup_folder = os.listdir(os.getcwd())
+        dup_folder = [file for file in dup_folder if file.startswith(fname) and not '.' in file[len(fname):]]
+        dup_folder = max(dup_folder)
+        t = dup_folder[-1]
+        if t.isnumeric():
+            dup_folder = dup_folder[:-1] + str(int(t) + 1)
+        else:
+            dup_folder = dup_folder + "1"
+        os.mkdir(dup_folder)
+    return dup_folder
+
+def pdf2img(pdf_file, no_dir):
+    fname = pdf_file[:-4]
+
+    if pdf_file not in os.listdir(os.getcwd()):
+        print("PDF file not found\n")
+        sys.exit(1)
+    elif pdf_file[-4:] != ".pdf":
+        print("Given file is not a PDF file\n")
+        sys.exit(1)
+    else:
+        dup_folder = ''
+        if not no_dir:
+            dup_folder = make_dir(fname)
+            print("Converting Wait!!")
+        from pdf2image import convert_from_path
+        images = convert_from_path(pdf_file)
+        for i, img in enumerate(images):
+            if dup_folder:
+                img.save(f'{dup_folder}/{fname}{i+1}.jpg', 'JPEG')
+            else:
+                img.save(f'{fname}{i+1}.jpg', 'JPEG')
+
+        if not no_dir and dup_folder:
+            print("", (i+1), ("image" if i == 1 else "images"), "saved in", dup_folder)
+        else:
+            print("", (i+1), ("image" if i == 1 else "images"), "saved in current working directory")
+
+def pdfunlock(pdf_file, password):
+    import pikepdf
+    try:
+        fname = pdf_file[:-4]
+        if pdf_file not in os.listdir(os.getcwd()):
+            print("PDF file not found\n")
+            sys.exit(1)
+        elif pdf_file[-4:] != ".pdf":
+            print("Given file is not a PDF file\n")
+            sys.exit(1)
+        else:
+            pdf = pikepdf.open(pdf_file, password=password)
+            pdf.save(f"{fname}_unlocked.pdf")
+            print("Pdf unlocked!!")
+    except Exception as ex:
+        print(f"Error occurred: {ex}")
+
+def pdfmerge(output_file, *pdf_files):
+    from PyPDF2 import PdfMerger
+    merger = PdfMerger()
+    try:
+        for pdf in pdf_files:
+            if not os.path.exists(pdf):
+                print(f"File {pdf} not found, skipping...")
+                continue
+            merger.append(pdf)
+        merger.write(output_file)
+        merger.close()
+        print(f"Merged PDF saved as {output_file}")
+    except Exception as ex:
+        print(f"Error occurred: {ex}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Perform PDF operations")
+    subparsers = parser.add_subparsers(dest="command")
+
+    # PDF to Image
+    parser_img = subparsers.add_parser("pdf2img", help="Convert PDF to images")
+    parser_img.add_argument("pdf_file", help="PDF file to convert")
+    parser_img.add_argument("-nodir", "--nodir", action="store_true", help="Save images in the current directory")
+
+    # PDF Unlock
+    parser_unlock = subparsers.add_parser("pdfunlock", help="Unlock PDF file")
+    parser_unlock.add_argument("pdf_file", help="PDF file to unlock")
+    parser_unlock.add_argument("password", help="Password for the locked PDF")
+
+    # PDF Merge
+    parser_merge = subparsers.add_parser("pdfmerge", help="Merge multiple PDFs")
+    parser_merge.add_argument("output_file", help="Output merged PDF file")
+    parser_merge.add_argument("pdf_files", nargs="+", help="PDF files to merge")
+
+    args = parser.parse_args()
+
+    if args.command == "pdf2img":
+        pdf2img(args.pdf_file, args.nodir)
+    elif args.command == "pdfunlock":
+        pdfunlock(args.pdf_file, args.password)
+    elif args.command == "pdfmerge":
+        pdfmerge(args.output_file, *args.pdf_files)
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()
