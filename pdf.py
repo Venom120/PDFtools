@@ -68,10 +68,11 @@ def pdfmerge(output_file, *pdf_files):
     merger = PdfMerger()
     try:
         for pdf in pdf_files:
-            if not os.path.exists(pdf):
+            if not os.path.exists(pdf) or pdf[:-4]!=".pdf":
                 print(f"File {pdf} not found, skipping...")
                 continue
             merger.append(pdf)
+        if output_file[:-4]!=".pdf": output_file+=".pdf"
         merger.write(output_file)
         merger.close()
         print(f"Merged PDF saved as {output_file}")
