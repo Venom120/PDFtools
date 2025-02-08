@@ -78,6 +78,27 @@ def pdfmerge(output_file, *pdf_files):
         print(f"Merged PDF saved as {output_file}")
     except Exception as ex:
         print(f"Error occurred: {ex}")
+        
+        
+def img2pdf(output_file, *img_files):
+    from PIL import Image
+    # Convert images to PDF format
+    img_formats=[".jpg", ".png", ".jpeg"]
+    pdf_pages = []
+    try:
+        for img_file in img_files:
+            if not os.path.exists(img_file) or img_file[-4:] not in img_formats:
+                    raise FileNotFoundError(img_file)
+            img = Image.open(img_file).convert("RGB")  # Convert to RGB mode (required for PDF)
+            pdf_pages.append(img)
+        # Save the first image as PDF and append the rest
+        pdf_pages[0].save(output_file, save_all=True, append_images=pdf_pages[1:])
+        print(f"Converted PDF saved as {output_file}")
+        
+    except FileNotFoundError as img_file_name:
+        print(f"File '{img_file_name}' not found, operation terminated")
+    except Exception as ex:
+        print(f"Error occurred: {ex}")
 
 def main():
     parser = argparse.ArgumentParser(description="Perform PDF operations")
@@ -87,6 +108,11 @@ def main():
     parser_img = subparsers.add_parser("pdf2img", help="Convert PDF to images")
     parser_img.add_argument("pdf_file", help="PDF file to convert")
     parser_img.add_argument("-nodir", "--nodir", action="store_true", help="Save images in the current directory")
+    
+    # IMG convert
+    parser_merge = subparsers.add_parser("img2pdf", help="Convert multiple IMGs to pdf")
+    parser_merge.add_argument("output_file", help="Output merged PDF file")
+    parser_merge.add_argument("img_files", nargs="+", help="IMG files to Convert")
 
     # PDF Unlock
     parser_unlock = subparsers.add_parser("pdfunlock", help="Unlock PDF file")
@@ -97,11 +123,13 @@ def main():
     parser_merge = subparsers.add_parser("pdfmerge", help="Merge multiple PDFs")
     parser_merge.add_argument("output_file", help="Output merged PDF file")
     parser_merge.add_argument("pdf_files", nargs="+", help="PDF files to merge")
-
+    
     args = parser.parse_args()
 
     if args.command == "pdf2img":
         pdf2img(args.pdf_file, args.nodir)
+    elif args.command == "img2pdf":
+        img2pdf(args.output_file, *args.img_files)
     elif args.command == "pdfunlock":
         pdfunlock(args.pdf_file, args.password)
     elif args.command == "pdfmerge":
