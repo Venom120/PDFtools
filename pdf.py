@@ -132,32 +132,6 @@ def pdfcompress(*pdf_files):
     except Exception as ex:
         print(f"Error occurred: {ex}")
         
-def pdfcompress(*pdf_files):
-    try:
-        for pdf_file in pdf_files:
-            if not os.path.exists(pdf_file) or pdf_file[-4:]!=".pdf":
-                raise FileNotFoundError(pdf_file)
-        from PyPDF2 import PdfReader, PdfWriter
-        for pdf_file in pdf_files:
-            reader = PdfReader(pdf_file)
-            writer = PdfWriter()
-            for page in reader.pages:
-                page.compress_content_streams()  # Compresses text and images
-                writer.add_page(page)
-            output_file_name=f"{pdf_file[-4:]}_compressed.pdf"
-            if os.path.exists(output_file_name):
-                output_file_name=f"{pdf_file[-4:]}_compressed (1).pdf"
-            while(os.path.exists(output_file_name)):
-                output_file_name[-6]=chr(int(output_file_name[-6])+1)
-            with open(output_file_name, "wb") as f:
-                writer.write(f)
-            print(f"Compressed PDF saved as {output_file_name}")
-            
-    except FileNotFoundError as img_file_name:
-        print(f"File '{img_file_name}' not found, operation terminated")
-    except Exception as ex:
-        print(f"Error occurred: {ex}")
-
 def main():
     parser = argparse.ArgumentParser(description="Perform PDF operations")
     subparsers = parser.add_subparsers(dest="command")
