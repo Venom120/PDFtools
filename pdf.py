@@ -21,9 +21,9 @@ def make_dir(fname):
 
 def pdf2img(pdf_file, no_dir):
     fname = pdf_file[:-4]
-	try:
-        if not os.path.exists(pdf) or pdf[-4:]!=".pdf":
-                raise FileNotFoundError(pdf)
+    try:
+        if not os.path.exists(fname) or fname[-4:]!=".pdf":
+                raise FileNotFoundError(fname)
         else:
             dup_folder = ''
             if not no_dir:
