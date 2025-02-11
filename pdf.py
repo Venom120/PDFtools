@@ -20,11 +20,11 @@ def make_dir(fname):
     return dup_folder
 
 def pdf2img(pdf_file, no_dir):
-    fname = pdf_file[:-4]
     try:
-        if not os.path.exists(fname) or fname[-4:]!=".pdf":
-                raise FileNotFoundError(fname)
+        if not os.path.exists(pdf_file) or pdf_file[-4:]!=".pdf":
+                raise FileNotFoundError(pdf_file)
         else:
+            fname = pdf_file[:-4]
             dup_folder = ''
             if not no_dir:
                 dup_folder = make_dir(fname)
@@ -43,6 +43,7 @@ def pdf2img(pdf_file, no_dir):
                 print("", (i+1), ("image" if i == 1 else "images"), "saved in current working directory")
     except FileNotFoundError as e:
         print(f"File '{e.args[0]}' not found, operation terminated")
+        print(e.args)
     except Exception as ex:
         print(f"Error occurred: {ex}")
 
