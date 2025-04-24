@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -34,5 +34,5 @@ jobs:
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: pdftools-executable
+          name: pdftools
           path: dist/pdftools.exe
