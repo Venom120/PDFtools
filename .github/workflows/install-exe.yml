@@ -29,10 +29,11 @@ jobs:
       - name: Create executable
         run: |
           pip install pyinstaller
-          pyinstaller --onefile --name pdftools pdftools.py
+          pyinstaller --onefile --noconsole --name pdftools pdftools.py
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: pdftools
+          name: pdftools.exe
           path: dist/pdftools.exe
+          if-no-files-found: error
