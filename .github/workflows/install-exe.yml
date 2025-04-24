@@ -1,0 +1,41 @@
+name: Install PDFtools
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.13.2'  # Specify the Python version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r req.txt
+
+      - name: Install PDFtools
+        run: |
+          pip install .
+
+      - name: Create executable
+        run: |
+          pyinstaller --onefile pdftools.py
+          
+      - name: Upload executable
+        uses: actions/upload-artifact@v2
+        with:
+          name: pdftools-executable
+          path: dist/pdftools
