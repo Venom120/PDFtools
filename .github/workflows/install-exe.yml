@@ -26,10 +26,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r req.txt
 
-      - name: Install PDFtools
-        run: |
-          pip install .
-
       - name: Create executable
         run: |
           pip install pyinstaller
