@@ -29,7 +29,7 @@ jobs:
       - name: Create executable
         run: |
           pip install pyinstaller
-          pyinstaller --onefile pdftools.py
+          pyinstaller --onefile --name pdftools pdftools.py
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
