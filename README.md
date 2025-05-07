@@ -1,5 +1,9 @@
 # PDFtools
+## windows app
+Follow this [link](https://github.com/Venom120/PDFtools/releases/download/v1/pdftools.exe) to download the exe file!!
+Windows defender may block it because i have disabled console windows
 
+## console
 First, run `Run_me_First.py` file (to add this folder to your environment variables).
 
 Also, complete the process mentioned in this link:
