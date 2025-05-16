@@ -152,7 +152,7 @@ def pdf2img(file_path, zip_option, output_dir):
     else:
         images = convert_from_path(file_path)
         for i, img in enumerate(images):
-            img.save(f'{output_dir}/{os.path.basename(file_path)}_{i+1}.jpg', 'JPEG')
+            img.save(f'{output_dir}/{os.path.basename(file_path[:-4])}_{i+1}.jpeg', 'JPEG')
         messagebox.showinfo("Success", "Images saved successfully!")
 
 def pdfunlock(file_path, zip_option, output_dir):
