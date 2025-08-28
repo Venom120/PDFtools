@@ -3,14 +3,13 @@ import zipfile
 import shutil
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, Toplevel, Listbox, Button, IntVar, Entry
-from tkinter.ttk import *
+from tkinter.ttk import Button, Label, Checkbutton, Entry
 from ttkthemes import ThemedTk
 from PIL import Image
-from PyPDF2 import PdfMerger
+from PyPDF2 import PdfMerger, PdfReader
 import pikepdf
 from pdf2image import convert_from_path
 from PyPDF2.errors import PdfReadError
-from PyPDF2 import PdfReader
 
 # Global Variables
 def make_dir(fname, output_dir):
@@ -191,7 +190,7 @@ def pdf2img(file_path, zip_option, output_dir):
     else:
         images = convert_from_path(file_path)
         for i, img in enumerate(images):
-            img.save(f'{output_dir}/{os.path.basename(file_path[:-4])}_{i+1}.jpeg', 'JPEG')
+            img.save(f'{output_dir}/{os.path.splitext(os.path.basename(file_path))[0]}_{i+1}.jpeg', 'JPEG')
         messagebox.showinfo("Success", "Images saved successfully!")
 
 def pdfunlock(file_path, zip_option, output_dir):
