@@ -21,25 +21,56 @@ def make_dir(fname, output_dir):
 
 def is_valid_pdf(file_path):
     try:
-        reader = PdfReader(file_path)
+        reader = PdfReader(file_path, strict=False)
         num_pages = len(reader.pages)
         return num_pages > 0
     except (PdfReadError, FileNotFoundError, Exception):
         return False
 
-def select_file():
+def select_file(task_type=None):
     if os.name == 'posix':
-        result = os.popen('kdialog --getopenfilename').read().strip()
+        if task_type in ['pdfunlock', 'pdf2img']:
+            # Single PDF
+            cmd = 'kdialog --getopenfilename ~ "*.pdf|PDF files"'
+        elif task_type == 'img2pdf':
+            # Multiple images
+            cmd = 'kdialog --getopenfilename ~ "*.jpg *.jpeg *.png|Image files"'
+        elif task_type == 'pdfmerge':
+            # Multiple PDFs or ZIP with PDFs
+            cmd = 'kdialog --getopenfilename ~ "*.pdf *.zip|PDF/ZIP files"'
+        else:
+            cmd = 'kdialog --getopenfilename ~ "*.*|All files"'
+        result = os.popen(cmd).read().strip()
     else:
-        result = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf"), ("Image files", "*.jpg;*.jpeg;*.png"), ("ZIP files", "*.zip")])
+        if task_type in ['pdfunlock', 'pdf2img']:
+            result = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
+        elif task_type == 'img2pdf':
+            result = filedialog.askopenfilenames(filetypes=[("Image files", "*.jpg;*.jpeg;*.png")])
+        elif task_type == 'pdfmerge':
+            result = filedialog.askopenfilenames(filetypes=[("PDF/ZIP files", "*.pdf;*.zip")])
+        else:
+            result = filedialog.askopenfilename(filetypes=[("All files", "*.*")])
     return result
 
-def select_multiple_files():
+
+def select_multiple_files(task_type=None):
     if os.name == 'posix':
-        result = os.popen('kdialog --getopenfilename --multiple --separate-output').read().strip().split('\n')
+        if task_type == 'pdfmerge':
+            cmd = 'kdialog --getopenfilename --multiple --separate-output ~ "*.pdf *.zip|PDF/ZIP files"'
+        elif task_type == 'img2pdf':
+            cmd = 'kdialog --getopenfilename --multiple --separate-output ~ "*.jpg *.jpeg *.png|Image files"'
+        else:
+            cmd = 'kdialog --getopenfilename --multiple --separate-output ~ "*.*|All files"'
+        result = os.popen(cmd).read().strip().split('\n')
     else:
-        result = filedialog.askopenfilenames(filetypes=[("PDF files", "*.pdf"), ("Image files", "*.jpg;*.jpeg;*.png"), ("ZIP files", "*.zip")])
+        if task_type == 'pdfmerge':
+            result = filedialog.askopenfilenames(filetypes=[("PDF/ZIP files", "*.pdf;*.zip")])
+        elif task_type == 'img2pdf':
+            result = filedialog.askopenfilenames(filetypes=[("Image files", "*.jpg;*.jpeg;*.png")])
+        else:
+            result = filedialog.askopenfilenames(filetypes=[("All files", "*.*")])
     return [f for f in result if f]
+
 
 def select_folder():
     if os.name == 'posix':
@@ -83,15 +114,19 @@ def reorder_files(files):
     reorder_window.wait_window()
     return files
 
-def create_input_window(task_func):
+def create_input_window(task_func, task_type):
     def upload_file():
         nonlocal file_path
-        if task_func in [pdfmerge, img2pdf]:
-            file_path = select_multiple_files()
+        # Multiple files for pdfmerge & img2pdf
+        if task_type in ["pdfmerge", "img2pdf"]:
+            file_path = select_multiple_files(task_type)
         else:
-            file_path = select_file()
+            file_path = select_file(task_type)
         if file_path:
-            lbl_file.config(text=f"{len(file_path) if isinstance(file_path, list) else 1} file(s) selected")
+            if isinstance(file_path, list):
+                lbl_file.config(text=f"{len(file_path)} file(s) selected")
+            else:
+                lbl_file.config(text=os.path.basename(file_path))
 
     def select_output_folder():
         folder_selected = select_folder()
@@ -106,7 +141,11 @@ def create_input_window(task_func):
         if not output_entry.get():
             messagebox.showerror("Error", "No output folder selected. Please choose an output location.")
             return
-        task_func(file_path, chk_zip.get(), output_entry.get())
+        try:
+            task_func(file_path, chk_zip.get(), output_entry.get())
+        except Exception as e:
+            messagebox.showerror("Error", f"Operation failed: {str(e)}")
+            return
         messagebox.showinfo("Success", "Task completed successfully!")
         input_window.destroy()
 
@@ -121,7 +160,7 @@ def create_input_window(task_func):
     lbl_file.pack(side=tk.LEFT, padx=5)
 
     chk_zip = IntVar()
-    if task_func == pdf2img:
+    if task_type == "pdf2img":
         Checkbutton(input_window, text="Save as ZIP", variable=chk_zip).pack(pady=5)
 
     Label(input_window, text="Output Folder Location:").pack(pady=5)
@@ -156,17 +195,35 @@ def pdf2img(file_path, zip_option, output_dir):
         messagebox.showinfo("Success", "Images saved successfully!")
 
 def pdfunlock(file_path, zip_option, output_dir):
-    if not is_valid_pdf(file_path):
-        messagebox.showinfo("Error", f"Selected file is not a pdf")
-        return
-    password = simpledialog.askstring("Password", "Enter PDF password:", show='*')
     try:
-        with pikepdf.open(file_path, password=password) as pdf:
+        # Check if file exists first
+        if not os.path.exists(file_path):
+            messagebox.showerror("Error", "File not found.")
+            return
+
+        reader = PdfReader(file_path, strict=False)
+        if reader.is_encrypted:
+            password = simpledialog.askstring("Password", "Enter PDF password:", show='*')
+            if not password:
+                messagebox.showerror("Error", "No password entered.")
+                return
+            try:
+                with pikepdf.open(file_path, password=password) as pdf:
+                    output_file = os.path.join(output_dir, os.path.basename(file_path).replace('.pdf', '_unlocked.pdf'))
+                    pdf.save(output_file)
+                    messagebox.showinfo("Success", f"Unlocked PDF saved as {output_file}")
+            except pikepdf.PasswordError:
+                messagebox.showerror("Error", "Incorrect password for PDF.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to unlock PDF: {str(e)}")
+        else:
             output_file = os.path.join(output_dir, os.path.basename(file_path).replace('.pdf', '_unlocked.pdf'))
-            pdf.save(output_file)
-            messagebox.showinfo("Success", f"Unlocked PDF saved as {output_file}")
+            shutil.copy(file_path, output_file)
+            messagebox.showinfo("Success", f"PDF was not encrypted; copied to {output_file}")
+
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to unlock PDF: {str(e)}")
+        messagebox.showerror("Error", f"Failed to process PDF: {str(e)}")
+
 
 def pdfmerge(file_path, zip_option, output_dir):
     if not file_path:
@@ -212,9 +269,10 @@ root.title("PDF Toolkit")
 root.geometry("500x400")
 
 Label(root, text="PDF Toolkit", font=("Helvetica", 16)).pack(pady=10)
-Button(root, text="PDF to Image", command=lambda: create_input_window(pdf2img)).pack(pady=5)
-Button(root, text="Unlock PDF", command=lambda: create_input_window(pdfunlock)).pack(pady=5)
-Button(root, text="Merge PDFs", command=lambda: create_input_window(pdfmerge)).pack(pady=5)
-Button(root, text="Images to PDF", command=lambda: create_input_window(img2pdf)).pack(pady=5)
+Button(root, text="PDF to Image", command=lambda: create_input_window(pdf2img, "pdf2img")).pack(pady=5)
+Button(root, text="Unlock PDF", command=lambda: create_input_window(pdfunlock, "pdfunlock")).pack(pady=5)
+Button(root, text="Merge PDFs", command=lambda: create_input_window(pdfmerge, "pdfmerge")).pack(pady=5)
+Button(root, text="Images to PDF", command=lambda: create_input_window(img2pdf, "img2pdf")).pack(pady=5)
+
 
 root.mainloop()

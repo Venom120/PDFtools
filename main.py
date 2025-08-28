@@ -31,6 +31,7 @@ def pdf2img(pdf_file, no_dir):
                 print("Converting Wait!!")
             from pdf2image import convert_from_path
             images = convert_from_path(pdf_file)
+            i = -1 # Initialize i to handle cases where the loop might not run
             for i, img in enumerate(images):
                 if dup_folder:
                     img.save(f'{dup_folder}/{fname}{i+1}.jpg', 'JPEG')
@@ -50,8 +51,8 @@ def pdf2img(pdf_file, no_dir):
 def pdfunlock(pdf_file, password):
     import pikepdf
     try:
-        if not os.path.exists(pdf) or pdf[-4:]!=".pdf":
-            raise FileNotFoundError(pdf)
+        if not os.path.exists(pdf_file) or pdf_file[-4:]!=".pdf":
+            raise FileNotFoundError(pdf_file)
         else:
             pdf = pikepdf.open(pdf_file, password=password)
             pdf.save(f"{pdf_file[:-4]}_unlocked.pdf")
