@@ -6,10 +6,16 @@ from tkinter import filedialog, messagebox, simpledialog, Toplevel, Listbox, But
 from tkinter.ttk import Button, Label, Checkbutton, Entry
 from ttkthemes import ThemedTk
 from PIL import Image
+from pillow_heif import register_heif_opener
 from PyPDF2 import PdfMerger, PdfReader
 import pikepdf
 from pdf2image import convert_from_path
 from PyPDF2.errors import PdfReadError
+
+register_heif_opener()
+
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.heic', '.heif')
+HEIC_EXTENSIONS = ('.heic', '.heif')
 
 # Global Variables
 def make_dir(fname, output_dir):
@@ -31,9 +37,11 @@ def select_file(task_type=None):
         if task_type in ['pdfunlock', 'pdf2img']:
             # Single PDF
             cmd = 'kdialog --getopenfilename ~ "*.pdf|PDF files"'
+        elif task_type == 'heic2jpg':
+            cmd = 'kdialog --getopenfilename ~ "*.heic *.heif|HEIC files"'
         elif task_type == 'img2pdf':
             # Multiple images
-            cmd = 'kdialog --getopenfilename ~ "*.jpg *.jpeg *.png|Image files"'
+            cmd = 'kdialog --getopenfilename ~ "*.jpg *.jpeg *.png *.heic *.heif|Image files"'
         elif task_type == 'pdfmerge':
             # Multiple PDFs or ZIP with PDFs
             cmd = 'kdialog --getopenfilename ~ "*.pdf *.zip|PDF/ZIP files"'
@@ -43,8 +51,10 @@ def select_file(task_type=None):
     else:
         if task_type in ['pdfunlock', 'pdf2img']:
             result = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
+        elif task_type == 'heic2jpg':
+            result = filedialog.askopenfilename(filetypes=[("HEIC files", "*.heic;*.heif")])
         elif task_type == 'img2pdf':
-            result = filedialog.askopenfilenames(filetypes=[("Image files", "*.jpg;*.jpeg;*.png")])
+            result = filedialog.askopenfilenames(filetypes=[("Image files", "*.jpg;*.jpeg;*.png;*.heic;*.heif")])
         elif task_type == 'pdfmerge':
             result = filedialog.askopenfilenames(filetypes=[("PDF/ZIP files", "*.pdf;*.zip")])
         else:
@@ -57,7 +67,7 @@ def select_multiple_files(task_type=None):
         if task_type == 'pdfmerge':
             cmd = 'kdialog --getopenfilename --multiple --separate-output ~ "*.pdf *.zip|PDF/ZIP files"'
         elif task_type == 'img2pdf':
-            cmd = 'kdialog --getopenfilename --multiple --separate-output ~ "*.jpg *.jpeg *.png|Image files"'
+            cmd = 'kdialog --getopenfilename --multiple --separate-output ~ "*.jpg *.jpeg *.png *.heic *.heif|Image files"'
         else:
             cmd = 'kdialog --getopenfilename --multiple --separate-output ~ "*.*|All files"'
         result = os.popen(cmd).read().strip().split('\n')
@@ -65,7 +75,7 @@ def select_multiple_files(task_type=None):
         if task_type == 'pdfmerge':
             result = filedialog.askopenfilenames(filetypes=[("PDF/ZIP files", "*.pdf;*.zip")])
         elif task_type == 'img2pdf':
-            result = filedialog.askopenfilenames(filetypes=[("Image files", "*.jpg;*.jpeg;*.png")])
+            result = filedialog.askopenfilenames(filetypes=[("Image files", "*.jpg;*.jpeg;*.png;*.heic;*.heif")])
         else:
             result = filedialog.askopenfilenames(filetypes=[("All files", "*.*")])
     return [f for f in result if f]
@@ -117,7 +127,7 @@ def create_input_window(task_func, task_type):
     def upload_file():
         nonlocal file_path
         # Multiple files for pdfmerge & img2pdf
-        if task_type in ["pdfmerge", "img2pdf"]:
+        if task_type in ["pdfmerge", "img2pdf", "heic2jpg"]:
             file_path = select_multiple_files(task_type)
         else:
             file_path = select_file(task_type)
@@ -125,7 +135,7 @@ def create_input_window(task_func, task_type):
             if isinstance(file_path, list):
                 lbl_file.config(text=f"{len(file_path)} file(s) selected")
             else:
-                lbl_file.config(text=os.path.basename(file_path))
+                lbl_file.config(text=os.path.basename(str(file_path)))
 
     def select_output_folder():
         folder_selected = select_folder()
@@ -161,6 +171,8 @@ def create_input_window(task_func, task_type):
     chk_zip = IntVar()
     if task_type == "pdf2img":
         Checkbutton(input_window, text="Save as ZIP", variable=chk_zip).pack(pady=5)
+    elif task_type == "heic2jpg":
+        Checkbutton(input_window, text="Save as .jpeg", variable=chk_zip).pack(pady=5)
 
     Label(input_window, text="Output Folder Location:").pack(pady=5)
     output_frame = tk.Frame(input_window)
@@ -253,7 +265,7 @@ def img2pdf(file_path, zip_option, output_dir):
         os.makedirs(zip_folder, exist_ok=True)
         with zipfile.ZipFile(file_path[0], 'r') as zip_ref:
             zip_ref.extractall(zip_folder)
-        file_path = [os.path.join(zip_folder, f) for f in os.listdir(zip_folder) if f.lower().endswith(('jpg', 'jpeg', 'png'))]
+        file_path = [os.path.join(zip_folder, f) for f in os.listdir(zip_folder) if f.lower().endswith(IMAGE_EXTENSIONS)]
     order_files = reorder_files(file_path)
     images = [Image.open(img).convert('RGB') for img in order_files]
     output_file = os.path.join(output_dir, "output.pdf")
@@ -261,6 +273,35 @@ def img2pdf(file_path, zip_option, output_dir):
     if zip_folder:
         shutil.rmtree(zip_folder, ignore_errors=True)
     messagebox.showinfo("Success", f"PDF created as {output_file}")
+
+def heic2jpg(file_path, jpeg_option, output_dir):
+    if not file_path:
+        messagebox.showerror("Error", "No HEIC file selected.")
+        return
+
+    if isinstance(file_path, list):
+        heic_files = file_path
+    else:
+        heic_files = [file_path]
+
+    output_ext = '.jpeg' if jpeg_option else '.jpg'
+    converted_files = []
+
+    for heic_file in heic_files:
+        ext = os.path.splitext(heic_file)[1].lower()
+        if not os.path.exists(heic_file) or ext not in HEIC_EXTENSIONS:
+            messagebox.showerror("Error", f"Unsupported HEIC file: {heic_file}")
+            return
+
+        image = Image.open(heic_file).convert('RGB')
+        output_file = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(heic_file))[0]}{output_ext}")
+        image.save(output_file, 'JPEG')
+        converted_files.append(output_file)
+
+    if len(converted_files) == 1:
+        messagebox.showinfo("Success", f"HEIC converted to {converted_files[0]}")
+    else:
+        messagebox.showinfo("Success", f"Converted {len(converted_files)} HEIC files successfully!")
 
 # GUI Setup
 root = ThemedTk(theme="breeze")
@@ -272,6 +313,7 @@ Button(root, text="PDF to Image", command=lambda: create_input_window(pdf2img, "
 Button(root, text="Unlock PDF", command=lambda: create_input_window(pdfunlock, "pdfunlock")).pack(pady=5)
 Button(root, text="Merge PDFs", command=lambda: create_input_window(pdfmerge, "pdfmerge")).pack(pady=5)
 Button(root, text="Images to PDF", command=lambda: create_input_window(img2pdf, "img2pdf")).pack(pady=5)
+Button(root, text="HEIC to JPG/JPEG", command=lambda: create_input_window(heic2jpg, "heic2jpg")).pack(pady=5)
 
 
 root.mainloop()

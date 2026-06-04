@@ -20,6 +20,22 @@ To save images in the same directory without creating a separate folder, use:
 > pdf.bat pdf2img <pdf_file_name> --nodir
 ```
 
+### Convert HEIC to JPG/JPEG
+```bash
+> pdf.bat heic2jpg <heic_file_name>
+```
+To save using the `.jpeg` extension instead of `.jpg`, use:
+```bash
+> pdf.bat heic2jpg <heic_file_name> --jpeg
+```
+
+### Convert HEIC to PDF
+Use the `Images to PDF` option in the GUI or run:
+```bash
+> pdf.bat img2pdf <output_file_name> <image1> <image2> ...
+```
+HEIC and HEIF images are now accepted alongside JPG, JPEG, and PNG files.
+
 ### Unlock a Locked PDF
 ```
 > pdf.bat pdfunlock <pdf_file_name> <password>

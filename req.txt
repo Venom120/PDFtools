@@ -1,5 +1,6 @@
 pikepdf
 Pillow
+pillow-heif
 PyPDF2
 pdf2image
 ttkthemes
