@@ -70,6 +70,25 @@ def pdfunlock(pdf_file, password):
     except Exception as ex:
         print(f"Error occurred: {ex}")
 
+def pdf2docx(pdf_file, no_dir):
+    try:
+        if not os.path.exists(pdf_file) or pdf_file[-4:] != ".pdf":
+            raise FileNotFoundError(pdf_file)
+
+        import pdf2docx
+
+        output_file = f"{pdf_file[:-4]}.docx"
+        converter = pdf2docx.Converter(pdf_file)
+        converter.convert(output_file, start=0, end=None)
+        converter.close()
+        print(f"Converted DOCX saved as {output_file}")
+    except ModuleNotFoundError:
+        print("Error occurred: pdf2docx is not installed")
+    except FileNotFoundError as e:
+        print(f"File '{e.args[0]}' not found, operation terminated")
+    except Exception as ex:
+        print(f"Error occurred: {ex}")
+
 def heic2jpg(output_dir, save_as_jpeg, *heic_files):
     try:
         if not heic_files:
@@ -156,6 +175,10 @@ def main():
     parser_unlock.add_argument("pdf_file", help="PDF file to unlock")
     parser_unlock.add_argument("password", help="Password for the locked PDF")
 
+    # PDF to DOCX
+    parser_docx = subparsers.add_parser("pdf2docx", aliases=["p2d"], help="Convert PDF to DOCX")
+    parser_docx.add_argument("pdf_file", help="PDF file to convert")
+
     # PDF Merge
     parser_merge = subparsers.add_parser("merge",aliases=["m"], help="Merge multiple PDFs")
     parser_merge.add_argument("output_file", help="Output merged PDF file")
@@ -171,6 +194,8 @@ def main():
         heic2jpg(args.output_dir, args.jpeg, *args.heic_files)
     elif args.command in ["unlock","ul"]:
         pdfunlock(args.pdf_file, args.password)
+    elif args.command in ["pdf2docx", "p2d"]:
+        pdf2docx(args.pdf_file, False)
     elif args.command in ["merge","m"]:
         pdfmerge(args.output_file, *args.pdf_files)
     else:

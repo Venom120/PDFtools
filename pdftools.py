@@ -235,6 +235,28 @@ def pdfunlock(file_path, zip_option, output_dir):
     except Exception as e:
         messagebox.showerror("Error", f"Failed to process PDF: {str(e)}")
 
+def pdf2docx(file_path, zip_option, output_dir):
+    if not file_path:
+        messagebox.showerror("Error", "No PDF file selected.")
+        return
+
+    if not os.path.exists(file_path) or not file_path.lower().endswith('.pdf'):
+        messagebox.showerror("Error", "Selected file is not a PDF.")
+        return
+
+    try:
+        import pdf2docx
+
+        output_file = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(file_path))[0]}.docx")
+        converter = pdf2docx.Converter(file_path)
+        converter.convert(output_file, start=0)
+        converter.close()
+        messagebox.showinfo("Success", f"DOCX saved as {output_file}")
+    except ModuleNotFoundError:
+        messagebox.showerror("Error", "pdf2docx is not installed.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to convert PDF to DOCX: {str(e)}")
+
 
 def pdfmerge(file_path, zip_option, output_dir):
     if not file_path:
@@ -311,6 +333,7 @@ root.geometry("500x400")
 Label(root, text="PDF Toolkit", font=("Helvetica", 16)).pack(pady=10)
 Button(root, text="PDF to Image", command=lambda: create_input_window(pdf2img, "pdf2img")).pack(pady=5)
 Button(root, text="Unlock PDF", command=lambda: create_input_window(pdfunlock, "pdfunlock")).pack(pady=5)
+Button(root, text="PDF to DOCX", command=lambda: create_input_window(pdf2docx, "pdf2docx")).pack(pady=5)
 Button(root, text="Merge PDFs", command=lambda: create_input_window(pdfmerge, "pdfmerge")).pack(pady=5)
 Button(root, text="Images to PDF", command=lambda: create_input_window(img2pdf, "img2pdf")).pack(pady=5)
 Button(root, text="HEIC to JPG/JPEG", command=lambda: create_input_window(heic2jpg, "heic2jpg")).pack(pady=5)

@@ -41,6 +41,13 @@ HEIC and HEIF images are now accepted alongside JPG, JPEG, and PNG files.
 > pdf.bat pdfunlock <pdf_file_name> <password>
 ```
 
+### Convert PDF to DOCX
+```bash
+> pdf.bat pdf2docx <pdf_file_name>
+```
+
+This creates a DOCX file alongside the source PDF using the same base name.
+
 ### Merge Multiple PDFs
 ```
 > pdf.bat pdfmerge <output_file_name> <pdf1> <pdf2> <pdf3> ...
